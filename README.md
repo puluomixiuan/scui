@@ -1,41 +1,21 @@
 
 <div align="center">
 
-![logo](https://lolicode.gitee.io/scui-doc/logo.png)
-
-<p align="center">
-	<a href="https://v3.vuejs.org/" target="_blank">
-		<img src="https://img.shields.io/badge/VueCLI-5-green" alt="VueCLI">
-	</a>
-	<a href="https://v3.vuejs.org/" target="_blank">
-		<img src="https://img.shields.io/badge/Vue.js-3.x-green" alt="Vue">
-	</a>
-	<a href="https://element-plus.gitee.io/#/zh-CN/component/changelog" target="_blank">
-		<img src="https://img.shields.io/badge/element--plus-latest-blue" alt="element plus">
-	</a>
-</p>
-
 <h1>SCUI Admin</h1>
 
 </div>
+
+## 更新日志
+| 日期 | 更新内容 |
+| -------- | -------- |
+| 2025年8月20日 | mock数据登录查看scui封装组件内容 |
+| 2025年8月20日  | 更新了数字孪生 threejs 组件封装，基础功能展示 http://localhost:2800/#/threeD  |
 
 ## 介绍
 SCUI 是一个中后台前端解决方案，基于VUE3和elementPlus实现。
 使用最新的前端技术栈，提供各类实用的组件方便在业务开发时的调用，并且持续性的提供丰富的业务模板帮助你快速搭建企业级中后台前端任务。
 
-SCUI的宗旨是 让一切复杂的东西傻瓜化。
-
-![logo](https://lolicode.gitee.io/scui-doc/g_1.jpg)
-
-## 演示和文档
-
-| 类型 | 链接 |
-| -------- | -------- |
-| 文档地址 | https://lolicode.gitee.io/scui-doc/ |
-| 演示地址  | https://lolicode.gitee.io/scui-doc/demo/#/login |
-
-
-
+  
 ## 特点
 
 - **组件** 多个独家组件、业务模板
@@ -46,10 +26,6 @@ SCUI的宗旨是 让一切复杂的东西傻瓜化。
 - **性能** 在减少带宽请求和前端算力上多次优化，并且持续着
 - **其他** 多功能视图标签、动态权限菜单、控制台组态化、统一异常处理等等
 
-
-## 部分截图
-
-![logo](https://lolicode.gitee.io/scui-doc/g_2.jpg)
 
 ## 安装教程
 ``` sh
@@ -67,9 +43,6 @@ npm run serve
 ```
 启动完成后浏览器访问 http://localhost:2800
 
-## 鸣谢
+ 
 
-<img src="https://www.fastmock.site/resource/images/logo.png" style="height:40px"/>
 
-## 支持
-如果觉得本项目还不错或在工作中有所启发，请在Gitee(码云)帮开发者点亮星星，这是对开发者最大的支持和鼓励！
