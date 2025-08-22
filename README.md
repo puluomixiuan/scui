@@ -10,6 +10,7 @@
 | -------- | -------- |
 | 2025年8月20日 | mock数据登录查看scui封装组件内容 |
 | 2025年8月20日  | 更新了数字孪生 threejs 组件封装，基础功能展示 http://localhost:2800/#/threeD  |
+| 2025年8月22日  | threejs 组件封装，新增了流光线条功能  |
 
 ## 介绍
 SCUI 是一个中后台前端解决方案，基于VUE3和elementPlus实现。
@@ -30,7 +31,7 @@ SCUI 是一个中后台前端解决方案，基于VUE3和elementPlus实现。
 ## 安装教程
 ``` sh
 # 克隆项目
-git clone https://gitee.com/lolicode/scui.git
+git clone https://github.com/puluomixiuan/scui
 
 # 进入项目目录
 cd scui

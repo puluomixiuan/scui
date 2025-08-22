@@ -820,6 +820,17 @@
                 "type": "menu"
               },
               "component": "test/autocode/table"
+            },
+            {
+              "path": "/test/autocode/list_n",
+              "name": "autocode-table",
+              "meta": {
+                "title": "CRUD代码生成",
+                "hidden": true,
+                "active": "/test/autocode",
+                "type": "menu"
+              },
+              "component": "test/autocode/list"
             }
           ]
         },
@@ -955,6 +966,16 @@
         "type": "menu"
       },
       "component": "other/about"
+    },
+    {
+      "path": "/temp/index",
+      "name": "temp111",
+      "meta": {
+        "title": "模板",
+        "icon": "el-icon-info-filled",
+        "type": "menu"
+      },
+      "component": "temp/index"
     }
   ],
   "stats": {

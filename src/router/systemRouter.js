@@ -30,6 +30,13 @@ const routes = [
 			title: "重置密码"
 		}
 	},
+	{
+		path: "/threeD",
+		component: () => import(/* webpackChunkName: "resetPassword" */ '@/views/threeD/index'),
+		meta: {
+			title: "3D"
+		}
+	},
 ]
 
 export default routes;

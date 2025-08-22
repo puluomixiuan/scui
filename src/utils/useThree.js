@@ -19,6 +19,9 @@ import * as THREE from "three";
 const TWEEN = window.TWEEN;
 import { ref, onBeforeUnmount } from "vue";
 
+// 导入模块化功能
+import { createAndAddFlowLines, setThreeTestInstance, flowLinesControlPanel } from "./flowLines.js";
+
 let threeTest;
 let isDisposed = false;
 
@@ -32,43 +35,31 @@ const initThree = (id) => {
     threeTest = new Three3D(id).init();
     try { window.__three = threeTest; } catch (e) { }
     threeTest.setNightSkybox(); // 设置夜晚天空盒背景
+    // 覆盖天空背景为深冷蓝（与雾色 0x0a1624 搭配）
+    try { threeTest.scene.background = new THREE.Color(0x071827); } catch (e) { }
+    try { threeTest.renderer && threeTest.renderer.setClearColor && threeTest.renderer.setClearColor(0x071827, 1); } catch (e) { }
 
     // 创建夜晚场景光照系统
-    const nightLighting = createSceneLighting("科技夜晚光照", {
+    const nightLighting = createSceneLighting("城市冷蓝夜景", {
         // 环境光 - 科技感暗蓝环境光
         ambient: {
-            color: 0x001a33,
-            intensity: 0.25
+            color: 0x0a1624,
+            intensity: 0.35
         },
         // 方向光 - 科技感月光
         directional: {
-            color: 0x4a7ba7,
-            intensity: 0.4,
-            position: { x: -30, y: 80, z: -20 }
+            color: 0x6aa7ff,
+            intensity: 0.5,
+            position: { x: -60, y: 110, z: -30 }
         },
         // 半球光 - 科技感天空和地面反射
         hemisphere: {
-            skyColor: 0x001a33,
-            groundColor: 0x000022,
-            intensity: 0.3
+            skyColor: 0x0a1624,
+            groundColor: 0x02060d,
+            intensity: 0.35
         },
         // 科技感环境点光源（移除与路灯重叠的光源）
-        pointLights: [
-            {
-                color: 0x00aaff,
-                intensity: 1.0,
-                distance: 50,
-                decay: 1.2,
-                position: { x: -15, y: 8, z: 40 }
-            },
-            {
-                color: 0x00aaff,
-                intensity: 1.1,
-                distance: 55,
-                decay: 1.2,
-                position: { x: 0, y: 8, z: 20 }
-            }
-        ]
+        pointLights: []
     });
 
     // 添加夜晚光照系统
@@ -78,8 +69,6 @@ const initThree = (id) => {
         threeTest.addScene(target);
     });
 
-    // 添加科技感雾气效果
-    threeTest.scene.fog = new THREE.Fog(0x001a33, 120, 350);
 
     // 启用阴影
     threeTest.renderer.shadowMap.enabled = true;
@@ -508,7 +497,20 @@ const initThree = (id) => {
     const roofGradient = createRoofGradient();
     threeTest.addScene(roofGradient);
 
+    // 创建并添加流光线条
+    createAndAddFlowLines(threeTest);
+
+    // 设置流光线条控制面板的Three.js实例引用
+    setThreeTestInstance(threeTest);
+    // 控制流光线条
+    // flowLinesControlPanel.show();           // 显示
+    // flowLinesControlPanel.hide();           // 隐藏
+    // flowLinesControlPanel.toggle();         // 切换显示/隐藏
+    flowLinesControlPanel.enableAwesome();  // 启用炫酷模式
+
 };
+
+// ==================== 场景交互函数 ====================
 
 // 场景点击事件处理函数
 const handleSceneClick = (event, intersects) => {
@@ -1227,6 +1229,8 @@ const getModelParams = (name) => {
         return null;
     }
 };
+
+
 
 // 导出所有方法供 Vue 组件使用
 export {
