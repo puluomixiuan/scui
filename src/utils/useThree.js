@@ -1230,6 +1230,25 @@ const setModelOutlineParams = (outlineName, params) => {
     }
 };
 
+// 关闭/移除模型描边发光
+const removeModelOutline = (outlineName) => {
+    if (!threeTest || !threeTest.scene) return;
+    const outlineMesh = threeTest.scene.getObjectByName(outlineName);
+    if (outlineMesh) {
+        if (outlineMesh.parent) {
+            outlineMesh.parent.remove(outlineMesh);
+        } else {
+            threeTest.scene.remove(outlineMesh);
+        }
+        try { outlineMesh.material.dispose && outlineMesh.material.dispose(); } catch (e) { }
+        try { outlineMesh.geometry.dispose && outlineMesh.geometry.dispose(); } catch (e) { }
+        console.log(`已关闭并移除 ${outlineName}`);
+        return true;
+    }
+    console.warn(`未找到需要移除的 ${outlineName}`);
+    return false;
+};
+
 // 手动创建模型描边发光（用于测试）
 const manualCreateModelOutline = (modelName, outlineName = null) => {
     console.log(`手动创建${modelName}描边发光...`);
@@ -1385,5 +1404,6 @@ export {
     setWorkshopGlassOpacity,
     createModelOutline,
     setModelOutlineParams,
+    removeModelOutline,
     manualCreateModelOutline,
 }; 

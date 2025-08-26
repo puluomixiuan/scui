@@ -32,12 +32,12 @@
                     <template #title>
                         <div class="title">告警分布</div>
                     </template>
-                    <!-- <div class="device-online">
+                    <div class="device-online">
                         <div id="distribute" />
-                    </div> -->
-                    <div style="width:260px">
-                        <AlarmGauge :value="20" :dotInsetPx="10" />
                     </div>
+                    <!-- <div style="width:260px">
+                        <AlarmGauge :value="20" :dotInsetPx="10" />
+                    </div> -->
                 </Card>
             </div>
             <div class="three">
@@ -114,6 +114,7 @@
                         <el-dropdown-item divided command="color-red">红色描边</el-dropdown-item>
                         <el-dropdown-item command="color-green">绿色描边</el-dropdown-item>
                         <el-dropdown-item command="color-cyan">青色描边</el-dropdown-item>
+                        <el-dropdown-item divided command="remove-current">关闭当前发光</el-dropdown-item>
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
@@ -145,6 +146,7 @@ import {
     showModel, // 显示指定模型的方法
     createModelOutline, // 创建模型描边发光
     setModelOutlineParams, // 设置模型描边发光参数
+    removeModelOutline, // 关闭模型描边发光
     manualCreateModelOutline, // 手动创建模型描边发光
 } from "@/utils/useThree.js";
 import useEcharts from "@/hooks/useEcharts.js";
@@ -261,6 +263,10 @@ export default {
                 }
                 return;
             }
+            if (type === "remove" && payload === "current") {
+                removeModelOutline(currentOutlineName.value);
+                return;
+            }
         };
 
         // echarts hooks
@@ -273,7 +279,7 @@ export default {
         // echarts 渲染
         useEcharts(deviceOnlineOption, "deviceOnline");
         useEcharts(numberOfAlarmsOption, "numberOfAlarms");
-        // useEcharts(distributeOption, "distribute");
+        useEcharts(distributeOption, "distribute");
 
         // 组件挂载后初始化Three.js场景
         onMounted(() => {
