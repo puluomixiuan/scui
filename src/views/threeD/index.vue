@@ -32,8 +32,11 @@
                     <template #title>
                         <div class="title">告警分布</div>
                     </template>
-                    <div class="device-online">
+                    <!-- <div class="device-online">
                         <div id="distribute" />
+                    </div> -->
+                    <div style="width:260px">
+                        <AlarmGauge :value="20" :dotInsetPx="10" />
                     </div>
                 </Card>
             </div>
@@ -98,6 +101,23 @@
                 </template>
             </el-dropdown>
 
+            <!-- 模型描边发光控制 -->
+            <el-dropdown @command="onOutlineMenu">
+                <el-button type="primary"> 模型描边发光 </el-button>
+                <template #dropdown>
+                    <el-dropdown-menu>
+                        <el-dropdown-item command="create-电箱">为电箱创建</el-dropdown-item>
+                        <el-dropdown-item command="create-办公楼">为办公楼创建</el-dropdown-item>
+                        <el-dropdown-item command="create-厂房">为厂房创建</el-dropdown-item>
+                        <el-dropdown-item divided command="glow-2.0">增强发光</el-dropdown-item>
+                        <el-dropdown-item command="glow-0.5">减弱发光</el-dropdown-item>
+                        <el-dropdown-item divided command="color-red">红色描边</el-dropdown-item>
+                        <el-dropdown-item command="color-green">绿色描边</el-dropdown-item>
+                        <el-dropdown-item command="color-cyan">青色描边</el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
+
         </div>
     </div>
 </template>
@@ -107,6 +127,8 @@
 import { ref, onMounted } from "vue";
 // 导入自定义Card组件
 import Card from "./components/Card.vue";
+import AlarmGauge from "@/components/AlarmGauge.vue";
+
 // 导入Three.js相关工具函数
 import {
     initThree, // 初始化Three.js场景
@@ -121,15 +143,18 @@ import {
     deviceList, // 设备列表数据
     getModelParams, // 获取模型参数的方法
     showModel, // 显示指定模型的方法
+    createModelOutline, // 创建模型描边发光
+    setModelOutlineParams, // 设置模型描边发光参数
+    manualCreateModelOutline, // 手动创建模型描边发光
 } from "@/utils/useThree.js";
 import useEcharts from "@/hooks/useEcharts.js";
 import useEchartsData from "@/hooks/useEchartsData.js";
-import * as echarts from "echarts";
 
 export default {
     name: "ThreeD",
     components: {
         Card, // 注册Card组件
+        AlarmGauge,
     },
     setup() {
         // three 相关
@@ -205,6 +230,39 @@ export default {
             location(name);
         };
 
+        // ===== 模型描边发光下拉控制 =====
+        const currentOutlineName = ref("电箱描边发光");
+        const onOutlineMenu = (cmd) => {
+            const [type, payload] = cmd.split("-");
+            if (type === "create") {
+                currentOutlineName.value = `${payload}描边发光`;
+                createModelOutline(payload);
+                return;
+            }
+            if (type === "glow") {
+                const val = Number(payload);
+                setModelOutlineParams(currentOutlineName.value, {
+                    glowIntensity: val,
+                });
+                return;
+            }
+            if (type === "color") {
+                const map = {
+                    red: { x: 1.0, y: 0.0, z: 0.0 },
+                    green: { x: 0.0, y: 1.0, z: 0.0 },
+                    cyan: { x: 0.0, y: 0.8, z: 1.0 },
+                };
+                const color = map[payload];
+                if (color) {
+                    setModelOutlineParams(currentOutlineName.value, {
+                        outlineColor: color,
+                        glowColor: color,
+                    });
+                }
+                return;
+            }
+        };
+
         // echarts hooks
         const {
             deviceOnlineData,
@@ -215,7 +273,7 @@ export default {
         // echarts 渲染
         useEcharts(deviceOnlineOption, "deviceOnline");
         useEcharts(numberOfAlarmsOption, "numberOfAlarms");
-        useEcharts(distributeOption, "distribute");
+        // useEcharts(distributeOption, "distribute");
 
         // 组件挂载后初始化Three.js场景
         onMounted(() => {
@@ -238,6 +296,11 @@ export default {
             changeView,
             locationPatrolParty,
             clickDevice,
+            createModelOutline,
+            setModelOutlineParams,
+            manualCreateModelOutline,
+            onOutlineMenu,
+            currentOutlineName,
         };
     },
 };

@@ -14,7 +14,7 @@ import {
 } from "./modelThree.js";
 import { createLabel } from "./SpriteThree.js";
 import DeviceSpriteDom from "./device.js";
-import { circleShader, officeFlowShader, officeGlowShader } from "./shader.js";
+import { circleShader, officeFlowShader, officeGlowShader, modelOutlineShader } from "./shader.js";
 import * as THREE from "three";
 const TWEEN = window.TWEEN;
 import { ref, onBeforeUnmount } from "vue";
@@ -724,6 +724,7 @@ const gltfModelList = [
         position: { x: 40, y: 0, z: 40 },
         rotation: { x: 0, y: 0, z: 0 },
         scale: 1,
+        callback: () => createModelOutline("电箱"),
     },
     {
         url: "gltf/road_1.gltf",
@@ -816,13 +817,18 @@ const setModel = (model, animations, params) => {
     } else {
         threeTest.addModel(model);
     }
-    // 加载完后的回调函数，自定义加载完模型后的操作
-    if (params.callback) {
-        if (!isDisposed) params.callback(threeTest);
-    }
+
     // 如果是厂房，自动应用玻璃透明度
     if (params.name === "厂房") {
         try { applyWorkshopGlassOpacity(model, currentWorkshopGlassOpacity); } catch (e) { }
+    }
+
+    // 加载完后的回调函数，自定义加载完模型后的操作
+    // 延迟执行回调，确保模型完全添加到场景中
+    if (params.callback) {
+        setTimeout(() => {
+            if (!isDisposed) params.callback(threeTest);
+        }, 100);
     }
 };
 
@@ -1135,6 +1141,132 @@ const setOfficeGlowIntensity = (intensity) => {
     }
 };
 
+// 创建通用模型描边发光效果
+const createModelOutline = (modelName, outlineName = null) => {
+    const model = getModel(modelName, threeTest.scene);
+    if (!model) {
+        console.warn(`未找到${modelName}模型，稍后加载完成将自动创建描边发光`);
+        // 延迟重试
+        setTimeout(() => {
+            createModelOutline(modelName, outlineName);
+        }, 1000);
+        return;
+    }
+
+    // 如果没有指定outlineName，使用默认命名
+    if (!outlineName) {
+        outlineName = `${modelName}描边发光`;
+    }
+
+    // 检查是否已经创建过描边发光
+    const existingOutline = threeTest.scene.getObjectByName(outlineName);
+    if (existingOutline) {
+        console.log(`${outlineName}效果已存在`);
+        return;
+    }
+
+    // 获取模型的包围盒来确定正确的尺寸
+    const box = new THREE.Box3().setFromObject(model);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+
+
+    // 创建描边发光几何体（基于实际模型尺寸，稍微放大）
+    const geometry = new THREE.BoxGeometry(
+        size.x * 1.1,
+        size.y * 1.1,
+        size.z * 1.1
+    );
+
+    // 使用通用描边发光着色器
+    const material = modelOutlineShader();
+
+    const outlineMesh = new THREE.Mesh(geometry, material);
+    outlineMesh.name = outlineName;
+    outlineMesh.position.copy(center); // 使用包围盒中心位置
+    outlineMesh.rotation.copy(model.rotation);
+    outlineMesh.scale.copy(model.scale);
+
+    // 存储材质引用，方便后续控制
+    outlineMesh.userData.outlineMaterial = material;
+    outlineMesh.userData.targetModel = modelName; // 存储目标模型名称
+
+    // 添加到场景
+    threeTest.addScene(outlineMesh);
+
+    // 设置渲染顺序，确保描边发光在模型之上
+    outlineMesh.renderOrder = 1;
+    model.renderOrder = 0;
+};
+
+// 控制模型描边发光参数
+const setModelOutlineParams = (outlineName, params) => {
+    const outlineMesh = threeTest.scene.getObjectByName(outlineName);
+    if (outlineMesh && outlineMesh.userData.outlineMaterial) {
+        const material = outlineMesh.userData.outlineMaterial;
+
+        if (params.outlineColor) {
+            material.uniforms.uOutlineColor.value = params.outlineColor;
+        }
+        if (params.glowColor) {
+            material.uniforms.uGlowColor.value = params.glowColor;
+        }
+        if (params.outlineWidth !== undefined) {
+            material.uniforms.uOutlineWidth.value = params.outlineWidth;
+        }
+        if (params.glowIntensity !== undefined) {
+            material.uniforms.uGlowIntensity.value = params.glowIntensity;
+        }
+        if (params.pulseSpeed !== undefined) {
+            material.uniforms.uPulseSpeed.value = params.pulseSpeed;
+        }
+        if (params.flowSpeed !== undefined) {
+            material.uniforms.uFlowSpeed.value = params.flowSpeed;
+        }
+
+        console.log(`${outlineName}参数已更新:`, params);
+    } else {
+        console.warn(`未找到${outlineName}或材质`);
+    }
+};
+
+// 手动创建模型描边发光（用于测试）
+const manualCreateModelOutline = (modelName, outlineName = null) => {
+    console.log(`手动创建${modelName}描边发光...`);
+    console.log('当前场景中的对象:', threeTest.scene.children.map(child => child.name));
+
+    const model = getModel(modelName, threeTest.scene);
+    if (!model) {
+        console.error(`未找到${modelName}模型`);
+        return;
+    }
+
+    console.log(`找到${modelName}模型:`, model);
+
+    // 如果没有指定outlineName，使用默认命名
+    if (!outlineName) {
+        outlineName = `${modelName}描边发光`;
+    }
+
+    // 先移除已存在的描边发光
+    const existingOutline = threeTest.scene.getObjectByName(outlineName);
+    if (existingOutline) {
+        threeTest.scene.remove(existingOutline);
+        console.log(`已移除旧的${outlineName}效果`);
+    }
+
+    // 创建新的描边发光
+    createModelOutline(modelName, outlineName);
+
+    // 强制刷新渲染器
+    if (threeTest.renderer) {
+        threeTest.renderer.render(threeTest.scene, threeTest.camera);
+        console.log('已强制刷新渲染器');
+    }
+};
+
+
+
 const firstPerson = () => {
     isFirstPerson = !isFirstPerson;
     p.switch(isFirstPerson);
@@ -1251,4 +1383,7 @@ export {
     disposeThree,
     setOfficeGlowIntensity,
     setWorkshopGlassOpacity,
+    createModelOutline,
+    setModelOutlineParams,
+    manualCreateModelOutline,
 }; 

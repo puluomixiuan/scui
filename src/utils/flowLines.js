@@ -375,8 +375,6 @@ const toggleAwesomeMode = (threeTest, enabled) => {
         threeTest.flowLines.line2.material.uniforms.uFlowSpeed.value = speed;
         threeTest.flowLines.line2.material.uniforms.uFlowSpeed.value = enabled ? 8.0 : 4.0;
     }
-
-    console.log(`炫酷模式已${enabled ? '启用' : '禁用'}`);
 };
 
 export {

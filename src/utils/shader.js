@@ -388,3 +388,165 @@ export const officeGlowShader = () => {
 
     return material;
 };
+
+/**
+ * 创建通用模型描边发光着色器材质
+ * @returns {THREE.ShaderMaterial} 配置好的着色器材质对象
+ */
+export const modelOutlineShader = () => {
+    // 顶点着色器
+    const vertexShader = `
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+        varying vec2 vUv;
+        
+        void main() {
+            vPosition = position;
+            vNormal = normalize(normalMatrix * normal);
+            vUv = uv;
+            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+        }
+    `;
+
+    // 片元着色器 - 实现电箱描边发光效果
+    const fragmentShader = `
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+        varying vec2 vUv;
+        
+        uniform float uTime;
+        uniform vec3 uOutlineColor;      // 描边颜色
+        uniform vec3 uGlowColor;         // 发光颜色
+        uniform float uOutlineWidth;     // 描边宽度
+        uniform float uGlowIntensity;    // 发光强度
+        uniform float uPulseSpeed;       // 脉冲速度
+        uniform float uFlowSpeed;        // 流光速度
+        
+        // 噪声函数
+        float noise(vec2 p) {
+            return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+        
+        // 分形噪声
+        float fbm(vec2 p) {
+            float value = 0.0;
+            float amplitude = 0.5;
+            float frequency = 1.0;
+            for(int i = 0; i < 3; i++) {
+                value += amplitude * noise(p * frequency);
+                amplitude *= 0.5;
+                frequency *= 2.0;
+            }
+            return value;
+        }
+        
+        void main() {
+            vec3 normal = normalize(vNormal);
+            vec2 uv = vUv;
+            
+            // 计算边缘检测 - 修复边缘检测逻辑
+            float edge = 0.0;
+            
+            // 检测UV坐标的边缘 - 使用更清晰的边缘检测
+            float edgeX = 1.0 - smoothstep(0.0, uOutlineWidth, uv.x) * smoothstep(1.0, 1.0 - uOutlineWidth, uv.x);
+            float edgeY = 1.0 - smoothstep(0.0, uOutlineWidth, uv.y) * smoothstep(1.0, 1.0 - uOutlineWidth, uv.y);
+            
+            // 检测法线方向的边缘
+            float normalEdge = 1.0 - abs(dot(normal, vec3(0.0, 1.0, 0.0)));
+            normalEdge = pow(normalEdge, 1.5);
+            
+            // 组合边缘检测 - 确保边缘始终可见
+            edge = max(edgeX, edgeY) * 0.9 + normalEdge * 0.1;
+            edge = max(edge, 0.1); // 确保最小可见性
+            
+            // 脉冲效果
+            float pulse = sin(uTime * uPulseSpeed) * 0.3 + 0.7;
+            
+            // 流光效果
+            float flow = mod(uTime * uFlowSpeed, 1.0);
+            float flowWidth = 0.3; // 增加流光宽度
+            
+            // 在边缘创建流光
+            float flowEffect = 0.0;
+            if (uv.x < uOutlineWidth * 2.0 || uv.x > 1.0 - uOutlineWidth * 2.0 || 
+                uv.y < uOutlineWidth * 2.0 || uv.y > 1.0 - uOutlineWidth * 2.0) {
+                
+                // 计算流光在边缘的位置
+                float flowPos = 0.0;
+                if (uv.x < uOutlineWidth * 2.0 || uv.x > 1.0 - uOutlineWidth * 2.0) {
+                    flowPos = uv.y;
+                } else {
+                    flowPos = uv.x;
+                }
+                
+                // 流光动画
+                flowEffect = smoothstep(flowPos - flowWidth, flowPos, flow) * 
+                            smoothstep(flowPos + flowWidth, flowPos, flow);
+            }
+            
+            // 噪点效果
+            float noiseValue = fbm(uv * 8.0 + uTime * 0.5);
+            float noisePulse = sin(uTime * 6.0 + noiseValue * 8.0) * 0.2 + 0.8;
+            
+            // 描边颜色 - 增强可见性
+            vec3 outlineColor = uOutlineColor * edge * pulse * noisePulse * 2.0;
+            
+            // 发光效果 - 增强发光
+            vec3 glowColor = uGlowColor * edge * uGlowIntensity * pulse * flowEffect * 1.5;
+            
+            // 添加一些电气效果
+            float electric = sin(uTime * 15.0 + uv.x * 20.0) * sin(uTime * 12.0 + uv.y * 15.0);
+            electric = abs(electric) * 0.4;
+            
+            // 最终颜色 - 增强整体亮度
+            vec3 finalColor = outlineColor + glowColor + electric * uGlowColor;
+            finalColor = finalColor * 1.5; // 整体亮度提升
+            
+            // 透明度 - 确保足够的透明度
+            float alpha = max(edge * (0.9 + 0.3 * flowEffect + 0.2 * electric), 0.3);
+            
+            gl_FragColor = vec4(finalColor, alpha);
+        }
+    `;
+
+    // 创建材质
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            uTime: { value: 0.0 },
+            uOutlineColor: { value: { x: 0.0, y: 0.8, z: 1.0 } },    // 青色描边
+            uGlowColor: { value: { x: 0.0, y: 1.0, z: 1.0 } },        // 青色发光
+            uOutlineWidth: { value: 0.15 },                            // 描边宽度 - 增加宽度
+            uGlowIntensity: { value: 2.0 },                            // 发光强度 - 增加强度
+            uPulseSpeed: { value: 2.0 },                               // 脉冲速度
+            uFlowSpeed: { value: 1.5 }                                 // 流光速度
+        },
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        transparent: true,
+        side: THREE.DoubleSide,
+        depthTest: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+    });
+
+    // 动画循环
+    let time = 0.0;
+    let rafId = 0;
+
+    function animate() {
+        time += 0.016;
+        material.uniforms.uTime.value = time;
+        rafId = requestAnimationFrame(animate);
+    }
+
+    animate();
+
+    // 清理函数
+    const originalDispose = material.dispose.bind(material);
+    material.dispose = function () {
+        try { cancelAnimationFrame(rafId); } catch (e) { }
+        originalDispose();
+    };
+
+    return material;
+};
