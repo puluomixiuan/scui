@@ -484,3 +484,33 @@ export const flowLinesControlPanel = {
 
 // 默认导出控制面板
 export default flowLinesControlPanel;
+
+/**
+ * 停止并销毁流光线条（释放 RAF、几何体、材质并从场景移除）
+ * @param {Object} threeTest - Three.js 3D场景实例
+ */
+export const disposeFlowLines = (threeTest) => {
+    if (!threeTest || !threeTest.flowLines) return;
+
+    try {
+        // 停止动态颜色变化动画
+        if (threeTest.flowLines.animationId) {
+            try { cancelAnimationFrame(threeTest.flowLines.animationId); } catch (e) { }
+        }
+
+        const lines = [threeTest.flowLines.line1, threeTest.flowLines.line2];
+        lines.forEach((line) => {
+            if (!line) return;
+            try {
+                // 从场景移除
+                if (line.parent) line.parent.remove(line);
+                // 释放材质（其 dispose 已被覆写以取消内部 RAF）
+                line.material && line.material.dispose && line.material.dispose();
+                // 释放几何体
+                line.geometry && line.geometry.dispose && line.geometry.dispose();
+            } catch (e) { }
+        });
+    } finally {
+        try { delete threeTest.flowLines; } catch (e) { threeTest.flowLines = null; }
+    }
+};

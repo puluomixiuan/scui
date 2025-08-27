@@ -120,12 +120,28 @@
             </el-dropdown>
 
         </div>
+
+        <!-- 视频悬浮层 -->
+        <transition name="fade">
+            <div v-if="showVideo" class="video-overlay" @click.self="closeVideo">
+                <div class="video-card">
+                    <div class="video-header">
+                        <span>电箱监控</span>
+                        <el-button size="small" @click="closeVideo">关闭</el-button>
+                    </div>
+                    <video ref="videoRef" controls autoplay muted width="640" height="360">
+                        <source :src="videoSrc" type="video/mp4" />
+                        您的浏览器不支持 video 标签。
+                    </video>
+                </div>
+            </div>
+        </transition>
     </div>
 </template>
 
  <script>
 // 导入Vue的响应式API和生命周期钩子
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 // 导入自定义Card组件
 import Card from "./components/Card.vue";
 import AlarmGauge from "@/components/AlarmGauge.vue";
@@ -148,6 +164,8 @@ import {
     setModelOutlineParams, // 设置模型描边发光参数
     removeModelOutline, // 关闭模型描边发光
     manualCreateModelOutline, // 手动创建模型描边发光
+    createCameraHotspot,
+    removeCameraHotspot,
 } from "@/utils/useThree.js";
 import useEcharts from "@/hooks/useEcharts.js";
 import useEchartsData from "@/hooks/useEchartsData.js";
@@ -269,6 +287,51 @@ export default {
             }
         };
 
+        // ===== 点击电箱/标签 => 创建发光 + 显示摄像头3D热点；点击热点 => 打开视频 =====
+        const showVideo = ref(false);
+        // const videoSrc = ref("/video/electric.mp4");
+        const videoSrc = 'http://vjs.zencdn.net/v/oceans.mp4'
+        const videoRef = ref(null);
+        const cameraHotspotName = ref("摄像头热点-电箱");
+        const handleModelClick = (e) => {
+            const name = e?.detail?.name || "";
+            // 点击电箱模型或电箱文字标签
+            if (name.includes("电箱")) {
+                currentOutlineName.value = "电箱描边发光";
+                createModelOutline("电箱");
+                // 显示摄像头3D热点（可射线点击）
+                cameraHotspotName.value = `摄像头热点-电箱`;
+                createCameraHotspot("电箱", cameraHotspotName.value);
+                // 可选跳镜头
+                try {
+                    changeView(1);
+                } catch (err) {}
+            }
+        };
+        const handleCameraClick = (e) => {
+            const name = e?.detail?.name || "";
+            // 任意摄像头事件点击均打开视频
+            if (name.includes("电箱")) {
+                showVideo.value = true;
+                try {
+                    videoRef.value &&
+                        videoRef.value.play &&
+                        videoRef.value.play();
+                } catch (err) {}
+            }
+        };
+        const closeVideo = () => {
+            showVideo.value = false;
+            try {
+                videoRef.value &&
+                    videoRef.value.pause &&
+                    videoRef.value.pause();
+            } catch (e) {}
+            // 关闭视频时，同时关闭发光与摄像头热点
+            removeModelOutline(currentOutlineName.value);
+            removeCameraHotspot(cameraHotspotName.value);
+        };
+
         // echarts hooks
         const {
             deviceOnlineData,
@@ -284,6 +347,12 @@ export default {
         // 组件挂载后初始化Three.js场景
         onMounted(() => {
             initThree("office"); // 在id为office的DOM元素中初始化场景
+            window.addEventListener("model-click", handleModelClick);
+            window.addEventListener("camera-click", handleCameraClick);
+        });
+        onBeforeUnmount(() => {
+            window.removeEventListener("model-click", handleModelClick);
+            window.removeEventListener("camera-click", handleCameraClick);
         });
 
         // 暴露给模板使用的变量和方法
@@ -307,6 +376,10 @@ export default {
             manualCreateModelOutline,
             onOutlineMenu,
             currentOutlineName,
+            showVideo,
+            videoSrc,
+            videoRef,
+            closeVideo,
         };
     },
 };
@@ -484,5 +557,38 @@ export default {
     .el-dropdown {
         margin-left: 10px;
     }
+}
+
+.video-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+}
+.video-card {
+    width: 700px;
+    background: #0b1a24;
+    border: 1px solid #00d4ff;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    padding: 16px;
+    border-radius: 8px;
+}
+.video-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #cfefff;
+    margin-bottom: 12px;
+}
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s;
+}
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>

@@ -13,7 +13,9 @@ export class Three3D {
         labelRenderer.domElement.style.position = "absolute";
         labelRenderer.domElement.style.top = "0px";
         labelRenderer.domElement.style.left = "0px";
-        labelRenderer.domElement.style.pointerEvents = "none";
+        // 允许标签接收点击事件
+        labelRenderer.domElement.style.pointerEvents = "auto";
+        labelRenderer.domElement.style.zIndex = "100000";
         this.labelRenderer = labelRenderer;
         this.dome.appendChild(labelRenderer.domElement);
         const css3Renderer = new CSS3DRenderer();
