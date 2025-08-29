@@ -160,10 +160,8 @@ const disposeThree = () => {
 const initThree = (id) => {
     threeTest = new Three3D(id).init();
     try { window.__three = threeTest; } catch (e) { }
-    threeTest.setNightSkybox(); // 设置夜晚天空盒背景
-    // 覆盖天空背景为深冷蓝（与雾色 0x0a1624 搭配）
-    try { threeTest.scene.background = new THREE.Color(0x071827); } catch (e) { }
-    try { threeTest.renderer && threeTest.renderer.setClearColor && threeTest.renderer.setClearColor(0x071827, 1); } catch (e) { }
+    try { window.__threeTest = threeTest; } catch (e) { }
+    // 初始背景交由昼夜交替系统控制（避免强行覆盖为夜晚或纯色）
 
     // 创建夜晚场景光照系统
     const nightLighting = createSceneLighting("城市冷蓝夜景", {
@@ -257,10 +255,6 @@ const initThree = (id) => {
     // 添加围栏
     addFace();
 
-    // 创建办公楼专用流光效果
-    const officeFlow = Office.createOfficeFlow();
-    threeTest.addScene(officeFlow);
-
     // 创建办公楼发光效果
     const officeGlow = Office.createOfficeGlow();
     // threeTest.addScene(officeGlow);
@@ -269,6 +263,15 @@ const initThree = (id) => {
     const roofLighting = Office.createRoofLighting();
     // threeTest.addScene(roofLighting);
 
+    // 添加昼夜交替光照系统
+    const dayNightLighting = Office.createDayNightLighting();
+    threeTest.addScene(dayNightLighting.group);
+
+    // 将光照控制对象存储到全局，方便外部调用
+    window.__dayNightControls = dayNightLighting.controls;
+
+
+
     // 添加路灯灯光环境到场景（由模块提供实现）
     const streetLighting = Street.createStreetLighting();
     threeTest.addScene(streetLighting);
@@ -276,6 +279,18 @@ const initThree = (id) => {
     // 添加楼顶横向渐变平面到场景（由模块提供实现）
     const roofGradient = Office.createRoofGradient();
     // threeTest.addScene(roofGradient);
+
+    // 玻璃默认常亮
+    Office.setGlassAlwaysOn(threeTest, { color: 0xffffff });
+
+    // 恢复窗框到原始颜色
+    Office.restoreWindowFrameColors(threeTest);
+
+    // 设定办公楼玻璃透明度（可调）
+    Office.setOfficeGlassOpacity(threeTest, 0.35);
+
+    // 精准替换：将墙体默认材质 "Material #30" 替换为 "00踏步.027"
+    try { Office.replaceMaterialByName(threeTest, 'Material #30', '00踏步.027'); } catch (e) { }
 
     // 创建并添加流光线条
     createAndAddFlowLines(threeTest);
@@ -287,6 +302,10 @@ const initThree = (id) => {
     // flowLinesControlPanel.hide();           // 隐藏
     // flowLinesControlPanel.toggle();         // 切换显示/隐藏
     flowLinesControlPanel.enableAwesome();  // 启用炫酷模式
+
+    // 创建办公楼专用流光效果
+    const officeFlow = Office.createOfficeFlow();
+    threeTest.addScene(officeFlow);
 
 };
 

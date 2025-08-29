@@ -118,8 +118,67 @@
                     </el-dropdown-menu>
                 </template>
             </el-dropdown>
+            
+            <!-- 昼夜交替控制下拉菜单 -->
+            <el-dropdown @command="onDayNightMenu" class="day-night-dropdown">
+                <el-button type="primary">
+                    🌓 昼夜交替控制
+                    <el-icon class="el-icon--right"><arrow-down /></el-icon>
+                </el-button>
+                <template #dropdown>
+                    <el-dropdown-menu>
+                        <el-dropdown-item command="switch-day">
+                            ☀️ 切换到白天
+                        </el-dropdown-item>
+                        <el-dropdown-item command="switch-night">
+                            🌙 切换到夜晚
+                        </el-dropdown-item>
+                        <el-dropdown-item divided command="auto-cycle">
+                            {{ isAutoCycling ? '🔄 停止循环' : '🔄 开始自动循环' }}
+                        </el-dropdown-item>
+                        <el-dropdown-item divided command="settings">
+                            ⚙️ 设置参数
+                        </el-dropdown-item>
+                    </el-dropdown-menu>
+                </template>
+            </el-dropdown>
 
         </div>
+
+        <!-- 昼夜交替设置对话框 -->
+        <el-dialog v-model="showDayNightSettings" title="🌓 昼夜交替设置" width="400px" :close-on-click-modal="false">
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label>过渡时间 (秒):</label>
+                    <el-slider v-model="transitionTime" :min="0.5" :max="5" :step="0.5" :show-tooltip="false" />
+                    <span class="setting-value">{{ transitionTime }}s</span>
+                </div>
+
+                <div class="setting-item">
+                    <label>白天时长 (秒):</label>
+                    <el-slider v-model="dayDuration" :min="10" :max="60" :step="5" :show-tooltip="false" />
+                    <span class="setting-value">{{ dayDuration }}s</span>
+                </div>
+
+                <div class="setting-item">
+                    <label>夜晚时长 (秒):</label>
+                    <el-slider v-model="nightDuration" :min="10" :max="60" :step="5" :show-tooltip="false" />
+                    <span class="setting-value">{{ nightDuration }}s</span>
+                </div>
+
+                <div class="setting-item">
+                    <label>当前状态:</label>
+                    <span :class="currentStatusClass">{{ currentStatusText }}</span>
+                </div>
+            </div>
+
+            <template #footer>
+                <span class="dialog-footer">
+                    <el-button @click="showDayNightSettings = false">取消</el-button>
+                    <el-button type="primary" @click="showDayNightSettings = false">确定</el-button>
+                </span>
+            </template>
+        </el-dialog>
 
         <!-- 视频悬浮层 -->
         <transition name="fade">
@@ -141,10 +200,12 @@
 
  <script>
 // 导入Vue的响应式API和生命周期钩子
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed } from "vue";
 // 导入自定义Card组件
 import Card from "./components/Card.vue";
 import AlarmGauge from "@/components/AlarmGauge.vue";
+// 导入Element Plus图标
+import { ArrowDown } from "@element-plus/icons-vue";
 
 // 导入Three.js相关工具函数
 import {
@@ -175,6 +236,7 @@ export default {
     components: {
         Card, // 注册Card组件
         AlarmGauge,
+        ArrowDown, // 注册箭头图标
     },
     setup() {
         // three 相关
@@ -290,7 +352,7 @@ export default {
         // ===== 点击电箱/标签 => 创建发光 + 显示摄像头3D热点；点击热点 => 打开视频 =====
         const showVideo = ref(false);
         // const videoSrc = ref("/video/electric.mp4");
-        const videoSrc = 'http://vjs.zencdn.net/v/oceans.mp4'
+        const videoSrc = "http://vjs.zencdn.net/v/oceans.mp4";
         const videoRef = ref(null);
         const cameraHotspotName = ref("摄像头热点-电箱");
         const handleModelClick = (e) => {
@@ -355,6 +417,88 @@ export default {
             window.removeEventListener("camera-click", handleCameraClick);
         });
 
+        // ===== 昼夜交替控制相关逻辑 =====
+        const transitionTime = ref(2.0);
+        const dayDuration = ref(30);
+        const nightDuration = ref(30);
+        const isAutoCycling = ref(false);
+        const currentStatus = ref("day"); // 'day' 或 'night'
+        const showDayNightSettings = ref(false); // 控制设置对话框显示
+
+        // 获取昼夜交替控制器的引用
+        const getDayNightControls = () => {
+            return window.__dayNightControls;
+        };
+
+        // 昼夜交替下拉菜单处理
+        const onDayNightMenu = (command) => {
+            switch (command) {
+                case "switch-day":
+                    switchToDay();
+                    break;
+                case "switch-night":
+                    switchToNight();
+                    break;
+                case "auto-cycle":
+                    if (isAutoCycling.value) {
+                        stopAutoCycle();
+                    } else {
+                        startAutoCycle();
+                    }
+                    break;
+                case "settings":
+                    showDayNightSettings.value = true;
+                    break;
+            }
+        };
+
+        // 切换到白天模式
+        const switchToDay = () => {
+            const controls = getDayNightControls();
+            if (controls) {
+                controls.switchToDay(transitionTime.value);
+                currentStatus.value = "day";
+            }
+        };
+
+        // 切换到夜晚模式
+        const switchToNight = () => {
+            const controls = getDayNightControls();
+            if (controls) {
+                controls.switchToNight(transitionTime.value);
+                currentStatus.value = "night";
+            }
+        };
+
+        // 开始自动循环
+        const startAutoCycle = () => {
+            const controls = getDayNightControls();
+            if (controls) {
+                controls.startAutoCycle(dayDuration.value, nightDuration.value);
+                isAutoCycling.value = true;
+            }
+        };
+
+        // 停止自动循环
+        const stopAutoCycle = () => {
+            const controls = getDayNightControls();
+            if (controls) {
+                controls.stopAutoCycle();
+                isAutoCycling.value = false;
+            }
+        };
+
+        // 计算状态文本和样式类
+        const currentStatusText = computed(() => {
+            return currentStatus.value === "day" ? "☀️ 白天" : "🌙 夜晚";
+        });
+
+        const currentStatusClass = computed(() => {
+            return currentStatus.value === "day"
+                ? "status-day"
+                : "status-night";
+        });
+
         // 暴露给模板使用的变量和方法
         return {
             deviceOnlineData,
@@ -380,6 +524,19 @@ export default {
             videoSrc,
             videoRef,
             closeVideo,
+            // 昼夜交替控制相关
+            transitionTime,
+            dayDuration,
+            nightDuration,
+            isAutoCycling,
+            currentStatusText,
+            currentStatusClass,
+            showDayNightSettings,
+            onDayNightMenu,
+            switchToDay,
+            switchToNight,
+            startAutoCycle,
+            stopAutoCycle,
         };
     },
 };
@@ -547,6 +704,68 @@ export default {
             }
         }
     }
+}
+
+// 昼夜交替控制下拉菜单样式
+.day-night-dropdown {
+    .el-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        font-weight: 500;
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+    }
+}
+
+// 昼夜交替设置对话框样式
+.settings-content {
+    .setting-item {
+        margin-bottom: 20px;
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .setting-value {
+            display: block;
+            text-align: center;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+    }
+}
+
+// 状态样式
+.status-day {
+    color: #ffd700;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.status-night {
+    color: #87ceeb;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(135, 206, 235, 0.5);
+}
+
+// 控制按钮样式优化
+.control {
+    position: relative;
+    z-index: 9999999;
+    margin: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .control {
